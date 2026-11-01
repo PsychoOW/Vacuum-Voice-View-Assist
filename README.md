@@ -36,7 +36,11 @@ don't have to maintain segment IDs anywhere.
 
 ## Install
 
+1. import it with the button below **or** copy the file to `/config/blueprints/automation/<your-name>/` and reload.
 
+   ```
+   https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=raw.githubusercontent.com/PsychoOW/Vacuum-Voice-View-Assist/refs/heads/main/view%20assist%20-%20vacuum
+   ```
 2. Settings → Automations & scenes → Blueprints → *Valetudo voice control…* → **Create automation**.
 3. Enter the Valetudo MQTT topic (Valetudo → Connectivity → MQTT, e.g.
    `valetudo/ShockingMustyReindeer`; it is the `topic` of `internal_variables` in your card).
