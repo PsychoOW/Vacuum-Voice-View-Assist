@@ -1,0 +1,30 @@
+# View Assist: Vacuum view (panel = the map card fills the entire screen)
+#
+# Installation: Open the View Assist dashboard > Edit > Three-dot menu > Raw configuration editor
+# and insert this block under "views:" (using the same indentation as the other views).
+# Resulting path: /view-assist/vacuum (= default value in the blueprint).
+#
+# The card configuration is identical to your existing Xiaomi Vacuum Map Card setup.
+#
+# View Assist: Vacuum view (panel = the map card fills the whole screen)
+#
+# Einbau: View-Assist-Dashboard oeffnen > Stift > drei Punkte > Raw-Konfigurationseditor
+# und diesen Block unter "views:" einfuegen (gleiche Einrueckung wie die anderen Views).
+# Pfad danach: /view-assist/vacuum  (= Standardwert im Blueprint)
+#
+# Die Karte ist 1:1 deine eigene Xiaomi-Vacuum-Map-Card-Konfiguration.
+
+- title: Vacuum
+  path: vacuum
+  type: panel
+  cards:
+    - type: custom:xiaomi-vacuum-map-card
+      entity: vacuum.valetudo_shockingmustyreindeer
+      map_source:
+        camera: camera.valetudo_d9_shockingmustyreindeer_camera
+      calibration_source:
+        camera: true
+      vacuum_platform: Hypfer/Valetudo
+      internal_variables:
+        topic: valetudo/ShockingMustyReindeer
+..... rest redacted....
