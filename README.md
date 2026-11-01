@@ -113,7 +113,7 @@ published message is identical to the card's. **Not tested on a physical robot.*
 And tested by me on a real robot with real home assistan on a real echo show 5 gen 1 running lineage os with view assist companion app installed and configured.
 
 ## Transparency disclosure
-Love it or hate it, this was created with the help of AI. Which enables people like who are not specialized in computer/programming professions.
+Love it or hate it, this was created with the help of AI. Which enables people like who are not specialized in computer/programming professions to create things like that.
 
 ---
 
