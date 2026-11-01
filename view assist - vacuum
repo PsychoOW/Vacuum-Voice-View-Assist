@@ -1,0 +1,347 @@
+blueprint:
+  name: Valetudo voice control (rooms + passes) with View Assist map
+  description: >-
+    Voice commands for a **Valetudo** robot vacuum that behave like selecting
+    rooms and passes on the Xiaomi Vacuum Map Card, plus "show the vacuum" for
+    View Assist displays.
+
+
+    **How it works:** the map card does not clean anything by itself, it sends
+    one MQTT message to Valetudo. This blueprint sends the very same message
+    (`MapSegmentationCapability/clean/set` with `segment_ids`, `iterations`,
+    `customOrder`), so "clean kitchen twice" is ONE run with two passes, not two
+    runs. Room names are read from Valetudo (`MapData/segments`).
+
+
+    **Examples:** "clean kitchen twice", "clean kitchen and bedroom three
+    times", "show the vacuum", in English and German ("reinige die Küche
+    zweimal").
+
+
+    **Room names:** the spoken name is matched against the Valetudo segment
+    names, against the Home Assistant area of that name/alias (so an alias
+    "kitchen" on your area "Küche" works) and against the optional extra
+    names below. Segments mapped to areas in Home Assistant are NOT readable
+    by automations (only the UI can read that), so names have to match or be
+    listed under "Extra room names".
+
+
+    Remove old custom sentences / intent scripts for "clean {room}" first,
+    otherwise two handlers compete.
+  domain: automation
+  author: Community
+  homeassistant:
+    min_version: 2024.10.0
+  input:
+    basics:
+      name: Basics
+      icon: mdi:robot-vacuum
+      collapsed: false
+      input:
+        mqtt_topic:
+          name: Valetudo MQTT topic
+          description: >-
+            Topic prefix + identifier from Valetudo (Connectivity > MQTT
+            connectivity), e.g. valetudo/ShockingMustyReindeer. It is the
+            same value as `topic` in `internal_variables` of your map card.
+          selector:
+            text: {}
+        response_language:
+          name: Language of spoken replies
+          description: >-
+            German and English sentences are both understood. This only
+            changes the answer Assist speaks back.
+          default: en
+          selector:
+            select:
+              options:
+                - label: English
+                  value: en
+                - label: Deutsch
+                  value: de
+        custom_order:
+          name: Clean rooms in the spoken order
+          description: >-
+            Sends "customOrder": true like the map card does. Turn off if your
+            robot firmware does not support a custom room order.
+          default: true
+          selector:
+            boolean: {}
+        handle_plain_clean:
+          name: Also handle plain "clean <room>" (one pass)
+          description: >-
+            Leave OFF if Assist already understands "clean kitchen" natively
+            (it then keeps working as before). Turn ON to let this blueprint
+            handle it too (same message as the map card, shows the map,
+            answers in your language). When ON, this blueprint answers first.
+          default: false
+          selector:
+            boolean: {}
+        extra_rooms:
+          name: Extra room names (optional)
+          description: >-
+            One entry per spoken name in the form `name=segment id`, e.g.
+            `kitchen=2`, `lounge=3`. Use it when a spoken name matches neither
+            the Valetudo segment name nor a Home Assistant area/alias.
+          default: []
+          selector:
+            text:
+              multiple: true
+    view_assist:
+      name: View Assist (optional)
+      icon: mdi:monitor-dashboard
+      collapsed: false
+      input:
+        view_assist_device:
+          name: View Assist device
+          description: >-
+            The View Assist sensor of your display (e.g.
+            sensor.viewassist_livingroom). Leave empty to skip.
+          default: ""
+          selector:
+            entity:
+              domain: sensor
+              integration: view_assist
+        view_path:
+          name: View path
+          description: >-
+            The View Assist view that contains your vacuum map card. A path
+            without leading "/" is prefixed with /view-assist/.
+          default: /view-assist/vacuum
+          selector:
+            text: {}
+        show_map_on_clean:
+          name: Show the map when a cleaning is started by voice
+          default: true
+          selector:
+            boolean: {}
+    advanced:
+      name: Advanced - own sentences
+      icon: mdi:code-braces
+      collapsed: true
+      input:
+        custom_enabled:
+          name: Enable own sentences
+          default: false
+          selector:
+            boolean: {}
+        custom_sentences:
+          name: Own sentences
+          description: >-
+            One sentence per entry. Use {slot} for wildcards, [optional] and
+            (a|b) for alternatives, e.g. "start vacuum party". Slots are
+            available as trigger.slots.<name> in your actions, the full text
+            as trigger.sentence. (Home Assistant requires at least one
+            sentence, so a harmless example is pre-filled.)
+          default:
+            - "vacuum custom example"
+          selector:
+            text:
+              multiple: true
+        custom_action:
+          name: Actions for own sentences
+          description: >-
+            Runs when one of your own sentences matches. Use
+            set_conversation_response to answer.
+          default: []
+          selector:
+            action: {}
+
+mode: parallel
+max: 5
+max_exceeded: silent
+
+variables:
+  topic: !input mqtt_topic
+  lang: !input response_language
+  custom_order: !input custom_order
+  extra_rooms: !input extra_rooms
+  va_device: !input view_assist_device
+  view_path: !input view_path
+  show_map: !input show_map_on_clean
+  re_three: "three times|3 times|dreimal|drei mal|3 mal"
+  re_two: "twice|two times|2 times|zweimal|zwei mal|2 mal"
+
+triggers:
+  # ---- several passes (always on) -------------------------------------------
+  - trigger: conversation
+    id: clean
+    command:
+      - "clean [the] {room} (twice|two times|2 times|three times|3 times)"
+      - "vacuum [the] {room} (twice|two times|2 times|three times|3 times)"
+      - "(reinige|sauge|putze) [die|den|das|dem] {room} (zweimal|zwei mal|2 mal|dreimal|drei mal|3 mal)"
+      - "{room} (zweimal|zwei mal|2 mal|dreimal|drei mal|3 mal) (reinigen|saugen|putzen)"
+  # ---- plain clean, only if the user wants it ---------------------------------
+  - trigger: conversation
+    id: clean_plain
+    enabled: !input handle_plain_clean
+    command:
+      - "clean [the] {room}"
+      - "vacuum [the] {room}"
+      - "(reinige|sauge|putze) [die|den|das|dem] {room}"
+      - "{room} (reinigen|saugen|putzen)"
+  # ---- show the map ---------------------------------------------------------
+  - trigger: conversation
+    id: show
+    command:
+      - "show [me] [the] (vacuum|robot|vacuum cleaner) [map]"
+      - "where is [the] (vacuum|robot|vacuum cleaner)"
+      - "zeig [mir] [den|die|das] (Staubsauger|Saugroboter|Roboter) [Karte]"
+      - "wo ist der (Staubsauger|Saugroboter|Roboter)"
+  # ---- own sentences (advanced) -----------------------------------------------
+  - trigger: conversation
+    id: custom
+    enabled: !input custom_enabled
+    command: !input custom_sentences
+
+actions:
+  - choose:
+      # =================== clean (1-3 passes) ===================
+      - conditions:
+          - condition: or
+            conditions:
+              - condition: trigger
+                id: clean
+              # Home Assistant runs EVERY matching trigger. The plain trigger
+              # also matches "clean kitchen twice" (the wildcard swallows
+              # "twice"), so it must stay quiet when a repeat word is present.
+              - condition: and
+                conditions:
+                  - condition: trigger
+                    id: clean_plain
+                  - condition: template
+                    value_template: >-
+                      {{ not ((trigger.sentence | lower) is search(re_two)
+                              or (trigger.sentence | lower) is search(re_three)) }}
+        sequence:
+          - variables:
+              spoken: "{{ trigger.sentence | lower }}"
+              passes: >-
+                {{ 3 if spoken is search(re_three)
+                   else 2 if spoken is search(re_two)
+                   else 1 }}
+              room_text: >-
+                {{ (trigger.slots.room | default('', true) | string | lower)
+                   | regex_replace('\\s*(' ~ re_three ~ '|' ~ re_two ~ ')\\s*$', '') }}
+              names: >-
+                {% set t = room_text | replace(',', ' and ') | replace(' und ', ' and ') %}
+                {{ t.split(' and ')
+                   | map('trim')
+                   | map('regex_replace', '^(the|der|die|das|den|dem|im|in der|in dem|in den|in the) ', '')
+                   | reject('eq', '')
+                   | list }}
+              base_topic: "{{ topic.rstrip('/') }}"
+              extra_map: >-
+                {% set ns = namespace(pairs=[]) %}
+                {% for line in extra_rooms %}
+                  {% set p = line.split('=') %}
+                  {% if p | length == 2 %}
+                    {% set ns.pairs = ns.pairs + [[p[0] | trim | lower, p[1] | trim]] %}
+                  {% endif %}
+                {% endfor %}
+                {{ dict(ns.pairs) }}
+          # Valetudo publishes {"<id>": "<room name>", ...} retained, so the
+          # message arrives right after subscribing.
+          - wait_for_trigger:
+              - trigger: mqtt
+                topic: "{{ base_topic }}/MapData/segments"
+            timeout: 5
+            continue_on_timeout: true
+          - variables:
+              segs: >-
+                {{ (wait.trigger.payload | from_json({})) if wait.trigger is not none else {} }}
+          - variables:
+              resolved: >-
+                {% set ns = namespace(ids=[], bad=[]) %}
+                {% for n in names %}
+                  {% set a = area_id(n) %}
+                  {% set an = (area_name(a) | lower) if a else '' %}
+                  {% set hit = namespace(id='') %}
+                  {% if n in extra_map %}
+                    {% set hit.id = extra_map[n] | string %}
+                  {% else %}
+                    {% for sid, sname in segs.items() %}
+                      {% if hit.id == '' and ((sname | lower) == n or (an != '' and (sname | lower) == an)) %}
+                        {% set hit.id = sid | string %}
+                      {% endif %}
+                    {% endfor %}
+                  {% endif %}
+                  {% if hit.id != '' %}
+                    {% set ns.ids = ns.ids + [hit.id] %}
+                  {% else %}
+                    {% set ns.bad = ns.bad + [n] %}
+                  {% endif %}
+                {% endfor %}
+                {{ {'ids': ns.ids | unique | list, 'bad': ns.bad} }}
+          - variables:
+              labels: >-
+                {% set ns = namespace(l=[]) %}
+                {% if segs | length == 0 %}
+                  {% set ns.l = names %}
+                {% else %}
+                  {% for i in resolved.ids %}{% set ns.l = ns.l + [segs.get(i, i)] %}{% endfor %}
+                {% endif %}
+                {% set n = ns.l %}
+                {{ (n[:-1] | join(', ') ~ (' and ' if lang == 'en' else ' und ') ~ n[-1]) if n | length > 1 else (n[0] if n else '') }}
+              msg_error: >-
+                {% if segs | length == 0 and extra_map | length == 0 %}
+                  {{ 'Ich konnte die Raumliste vom Staubsauger nicht lesen.' if lang == 'de' else "I couldn't read the room list from the vacuum." }}
+                {% elif resolved.ids | length == 0 or resolved.bad | length > 0 %}
+                  {% set b = resolved.bad | join(', ') if resolved.bad else room_text %}
+                  {{ ('Diesen Raum kenne ich nicht: ' ~ b ~ '.') if lang == 'de' else ("I don't know this room: " ~ b ~ '.') }}
+                {% endif %}
+          - if:
+              - condition: template
+                value_template: "{{ msg_error | length > 0 }}"
+            then:
+              - set_conversation_response: "{{ msg_error }}"
+            # (no "stop" here: it would discard the spoken answer above)
+            else:
+              - set_conversation_response: >-
+                  {% if lang == 'de' %}
+                    Alles klar, ich reinige {{ labels }}{{ ' zweimal' if passes == 2 else ' dreimal' if passes == 3 else '' }}.
+                  {% else %}
+                    Okay, cleaning {{ labels }}{{ ' twice' if passes == 2 else ' three times' if passes == 3 else '' }}.
+                  {% endif %}
+              - if:
+                  - condition: template
+                    value_template: "{{ show_map and va_device | length > 0 }}"
+                then:
+                  - action: view_assist.navigate
+                    continue_on_error: true
+                    data:
+                      device: "{{ va_device }}"
+                      path: "{{ view_path }}"
+              # Exactly what the Xiaomi Vacuum Map Card sends for rooms.
+              - action: mqtt.publish
+                data:
+                  topic: "{{ base_topic }}/MapSegmentationCapability/clean/set"
+                  payload: >-
+                    {{ {'segment_ids': resolved.ids,
+                        'iterations': passes,
+                        'customOrder': custom_order} | to_json }}
+
+      # =================== show the map ===================
+      - conditions:
+          - condition: trigger
+            id: show
+        sequence:
+          - if:
+              - condition: template
+                value_template: "{{ va_device | length > 0 }}"
+            then:
+              - action: view_assist.navigate
+                data:
+                  device: "{{ va_device }}"
+                  path: "{{ view_path }}"
+              - set_conversation_response: "{{ 'Hier ist der Staubsauger.' if lang == 'de' else 'Here is the vacuum.' }}"
+            else:
+              - set_conversation_response: >-
+                  {{ 'Es ist kein View-Assist-Gerät eingestellt.' if lang == 'de'
+                     else 'No View Assist device is configured.' }}
+
+      # =================== own sentences ===================
+      - conditions:
+          - condition: trigger
+            id: custom
+        sequence: !input custom_action
