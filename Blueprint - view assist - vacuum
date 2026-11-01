@@ -74,6 +74,8 @@ blueprint:
             (it then keeps working as before). Turn ON to let this blueprint
             handle it too (same message as the map card, shows the map,
             answers in your language). When ON, this blueprint answers first.
+            Note: To make the map show up for cleaning 2 rooms once, let the blueprint 
+            handle it with MQTT commands instead of native Home Assistant cleaning.
           default: false
           selector:
             boolean: {}
@@ -82,7 +84,7 @@ blueprint:
           description: >-
             One entry per spoken name in the form `name=segment id`, e.g.
             `kitchen=2`, `lounge=3`. Use it when a spoken name matches neither
-            the Valetudo segment name nor a Home Assistant area/alias.
+            the Valetudo segment name nor a Home Assistant area/alias. 
           default: []
           selector:
             text:
