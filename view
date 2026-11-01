@@ -14,10 +14,10 @@
 #
 # Die Karte ist 1:1 deine eigene Xiaomi-Vacuum-Map-Card-Konfiguration.
 
-- title: Vacuum
-  path: vacuum
-  type: panel
-  cards:
+  - title: Vacuum
+    path: vacuum
+    type: panel
+    cards:
     - type: custom:xiaomi-vacuum-map-card
       entity: vacuum.valetudo_shockingmustyreindeer
       map_source:
