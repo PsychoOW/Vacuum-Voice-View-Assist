@@ -115,6 +115,12 @@ And tested by me on a real robot with real home assistan on a real echo show 5 g
 ## Transparency disclosure
 Love it or hate it, this was created with the help of AI. Which enables people like who are not specialized in computer/programming professions to create things like that.
 
+## Acknowledgements / Danksagung
+Big Thanks to Dinki for View Assist <3
+Big Thanks to Hypfer for Valetudo <3
+Big Thanks to Rortiz2 from XDA Forums for Amonet <3
+
+
 ---
 
 ## Kurzfassung (Deutsch)
