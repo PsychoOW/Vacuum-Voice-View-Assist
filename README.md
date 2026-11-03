@@ -113,12 +113,14 @@ published message is identical to the card's. **Not tested on a physical robot.*
 And tested by me on a real robot with real home assistan on a real echo show 5 gen 1 running lineage os with view assist companion app installed and configured.
 
 ## Transparency disclosure
+
 Love it or hate it, this was created with the help of AI. Which enables people like who are not specialized in computer/programming professions to create things like that.
 
 ## Acknowledgements / Danksagung
-Big Thanks to Dinki for View Assist <3
-Big Thanks to Hypfer for Valetudo <3
-Big Thanks to Rortiz2 from XDA Forums for Amonet <3
+
+* **Big Thanks** to **Dinki** for View Assist <3                  (https://github.com/dinki/View-Assist)
+* **Big Thanks** to **Hypfer** for Valetudo <3                    (https://github.com/hypfer/valetudo)
+* **Big Thanks** to **Rortiz2** from XDA Forums for Amonet <3     (https://xdaforums.com/t/unlock-root-twrp-unbrick-amazon-echo-show-5-1st-gen-2019-checkers.4762900/)
 
 
 ---
